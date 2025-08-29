@@ -1,0 +1,6 @@
+{
+    "terminal.integrated.defaultProfile.windows": "Ubuntu-22.04 (WSL)",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+}
