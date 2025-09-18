@@ -113,9 +113,9 @@ impl TaskEscrowContract {
         }
 
         // Check creator has sufficient USDC balance using helper
-        if !Self::has_sufficient_usdc_balance(env.clone(), creator.clone(), bounty_amount)? {
-            return Err(Error::InsufficientBalance);
-        }
+        // if !Self::has_sufficient_usdc_balance(env.clone(), creator.clone(), bounty_amount)? {
+        //     return Err(Error::InsufficientBalance);
+        // }
 
         // Transfer USDC from creator to contract using safe helper
         Self::transfer_usdc_to_contract(&env, &creator, bounty_amount)?;
@@ -182,16 +182,11 @@ impl TaskEscrowContract {
             return Err(Error::EmptyTaskId);
         }
         
-        // Check minimum length (at least 3 characters for meaningful IDs)
-        if task_id.len() < 3 {
+        // Check required length (25 characters)
+        if task_id.len() != 25 {
             return Err(Error::InvalidTaskId);
         }
-        
-        // Check maximum length (reasonable limit for storage efficiency)
-        if task_id.len() > 100 {
-            return Err(Error::InvalidTaskId);
-        }
-        
+
         Ok(())
     }
 
@@ -244,11 +239,6 @@ impl TaskEscrowContract {
 
         // Require authentication from the task creator
         escrow.creator.require_auth();
-
-        // Validate task status (must be Open)
-        if escrow.status != TaskStatus::Open {
-            return Err(Error::InvalidTaskStatus);
-        }
 
         // Validate no contributor is already assigned
         if escrow.has_contributor {

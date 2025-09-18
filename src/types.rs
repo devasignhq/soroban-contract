@@ -28,7 +28,7 @@ pub enum TaskStatus {
 }
 
 /// Dispute information structure
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 #[contracttype]
 pub struct DisputeInfo {
     pub task_id: String,
