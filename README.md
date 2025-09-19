@@ -154,7 +154,9 @@ This project is licensed under the Apache 2.0 License. See [LICENSE](https://git
 
 ## 🔗 Related Projects
 
-- [DevAsign API Server](https://github.com/devasignhq/devasign-api) - Backend API and workflow management
-- [DevAsign Web App](https://github.com/devasignhq/devasign-app) - Frontend application
+- [DevAsign API Server](https://github.com/devasignhq/devasign-api) - Backend API and AI engine
+- [DevAsign Project Maintainer App](https://github.com/devasignhq/app.devasign.com) - Frontend for project maintainer
+- [DevAsign Contributor App](https://github.com/devasignhq/contributor.devasign.com) - Frontend for contributors
+
 
 ---
