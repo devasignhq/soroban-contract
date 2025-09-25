@@ -58,35 +58,11 @@ Smart Contract ensuring transparent and trustless payment processing between pro
 - **Transparent Operations**: All transactions recorded on Stellar blockchain.
 - **Gas Optimized**: Efficient contract design for minimal transaction costs.
 
-## Contract Architecture
-
-#### Core Components
-
-- **Task Management**: Create, assign, and track task completion status.
-- **Escrow System**: Secure USDC token holding and release mechanisms.
-- **Contributor Assignment**: Flexible contributor assignment and management.
-- **Dispute Resolution**: Multi-option dispute handling (refund, partial payment, full payment).
-- **Event Emission**: Comprehensive event logging for transparency.
-- **Admin Controls**: Contract initialization and administrative functions.
-
-#### Supported Workflows
-
-1. **Happy Path**: Create → Assign → Complete → Approve → Payment
-2. **Refund Path**: Create → Refund (before assignment)
-3. **Dispute Path**: Create → Assign → Complete → Dispute → Resolution
-
 ## Prerequisites
 
-#### Development Environment
 - [**Rust**](https://doc.rust-lang.org/book/ch01-01-installation.html) (v1.85.0 or higher)
 - [**Stellar CLI**](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup)
 - **Git** (latest version)
-
-<!-- ### Stellar Network Setup
-- **Stellar Account** with XLM for transaction fees
-- **USDC Token Contract** address (testnet or mainnet)
-- **Soroban RPC Endpoint** access -->
-
 
 ## Installation & Setup
 
@@ -138,7 +114,6 @@ stellar contract invoke \
 
 ## Testing
 
-#### Run Tests
 ```bash
 # Run all tests
 cargo test
@@ -147,35 +122,7 @@ cargo test
 cargo test --test test_contributor_assignment
 ```
 
-#### Test Structure
-```
-tests/
-├── test_initialization.rs      # Contract setup tests
-├── test_escrow_creation.rs     # Escrow creation tests
-├── test_contributor_assignment.rs # Assignment workflow tests
-├── test_task_completion.rs     # Completion workflow tests
-├── test_approval_and_payment.rs # Payment release tests
-├── test_disputes.rs            # Dispute handling tests
-├── test_refunds.rs            # Refund mechanism tests
-├── test_events.rs             # Event emission tests
-├── test_performance_security.rs # Performance and security tests
-└── test_integration.rs        # End-to-end integration tests
-```
-
-<!-- ## 🚀 Deployment -->
-
 <!-- ## 📈 Integration with DevAsign API -->
-
-## Monitoring & Events
-
-#### Emitted Events
-- `EscrowCreated`: New task escrow created
-- `ContributorAssigned`: Contributor assigned to task
-- `TaskCompleted`: Task marked as completed
-- `FundsReleased`: Payment released to contributor
-- `DisputeInitiated`: Dispute raised for task
-- `DisputeResolved`: Dispute resolved with outcome
-- `RefundProcessed`: Bounty refunded to creator
 
 ## License
 
@@ -195,5 +142,6 @@ This project is licensed under the Apache 2.0 License. See [LICENSE](https://git
 
 
 ---
+
 
 
