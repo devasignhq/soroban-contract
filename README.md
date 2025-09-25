@@ -55,8 +55,6 @@ Smart Contract ensuring transparent and trustless payment processing between pro
 - **Secure Escrow Management**: Holds USDC bounty payments in escrow until task completion.
 - **Automated Payments**: Instant payment release upon task approval.
 - **Dispute Resolution**: Built-in dispute handling with partial payment options.
-- **Transparent Operations**: All transactions recorded on Stellar blockchain.
-- **Gas Optimized**: Efficient contract design for minimal transaction costs.
 
 ## Prerequisites
 
@@ -142,6 +140,7 @@ This project is licensed under the Apache 2.0 License. See [LICENSE](https://git
 
 
 ---
+
 
 
 
