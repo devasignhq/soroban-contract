@@ -126,9 +126,9 @@ cargo test --test test_contributor_assignment
 
 This project is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/devasignhq/soroban-contracts/blob/main/LICENSE) for more details.
 
-## Repo Activity
+<!-- ## Repo Activity
 
-<img width="100%" src="https://repobeats.axiom.co/api/embed/0c69234f1d8c60c1c18e3a822093838310a7a30b.svg" />
+<img width="100%" src="https://repobeats.axiom.co/api/embed/0c69234f1d8c60c1c18e3a822093838310a7a30b.svg" /> -->
 
 <!-- ## 🤝 Contributing -->
 
@@ -140,6 +140,7 @@ This project is licensed under the Apache 2.0 License. See [LICENSE](https://git
 
 
 ---
+
 
 
 
