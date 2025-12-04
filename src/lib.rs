@@ -45,9 +45,6 @@ impl TaskEscrowContract {
         // Validate caller is current admin
         Self::require_admin(&env)?;
 
-        // Input parameters are validated by Soroban SDK
-        // No additional validation needed for addresses
-
         // Update admin address
         env.storage().instance().set(&DataKey::Admin, &new_admin);
 
@@ -367,8 +364,15 @@ impl TaskEscrowContract {
             .get(&DataKey::TaskEscrow(task_id.clone()))
             .ok_or(Error::TaskNotFound)?;
 
-        // Validate task is not already settled (Resolved or Cancelled)
-        if escrow.status == TaskStatus::Resolved || escrow.status == TaskStatus::Cancelled {
+        // Validate that a contributor is assigned (needed for resolution)
+        if !escrow.has_contributor {
+            return Err(Error::NoContributorAssigned);
+        }
+
+        // Validate task is either InProgress or Completed
+        if escrow.status == TaskStatus::Resolved || 
+        escrow.status == TaskStatus::Disputed || 
+        escrow.status == TaskStatus::Cancelled {
             return Err(Error::TaskAlreadyResolved);
         }
 
