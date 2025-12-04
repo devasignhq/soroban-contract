@@ -45,8 +45,26 @@ impl TaskEscrowContract {
         // Validate caller is current admin
         Self::require_admin(&env)?;
 
+        // Validate new admin address
+        Self::validate_address(&new_admin)?;
+
         // Update admin address
         env.storage().instance().set(&DataKey::Admin, &new_admin);
+
+        Ok(())
+    }
+
+    /// Update the USDC token contract address
+    /// Can only be called by admin (useful for token contract upgrades or migrations)
+    pub fn update_usdc_token(env: Env, new_usdc_token: Address) -> Result<(), Error> {
+        // Validate caller is current admin
+        Self::require_admin(&env)?;
+
+        // Validate new USDC token address
+        Self::validate_address(&new_usdc_token)?;
+
+        // Update USDC token address
+        env.storage().instance().set(&DataKey::UsdcToken, &new_usdc_token);
 
         Ok(())
     }
