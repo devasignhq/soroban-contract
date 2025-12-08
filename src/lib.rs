@@ -8,7 +8,7 @@ pub use types::*;
 pub use errors::*;
 pub use events::*;
 
-use soroban_sdk::{contract, contractimpl, token, Address, Env, String};
+use soroban_sdk::{contract, contractimpl, token, Address, Env, String, BytesN};
 
 #[contract]
 pub struct TaskEscrowContract;
@@ -773,5 +773,22 @@ impl TaskEscrowContract {
         let is_valid = Self::validate_usdc_token_contract(env)?;
 
         Ok((usdc_token, is_valid))
+    }
+
+    /// Upgrade the contract to new WASM bytecode
+    /// Can only be called by admin
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
+        // Require admin authentication
+        Self::require_admin(&env)?;
+
+        // Update the contract's WASM code
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+
+        Ok(())
+    }
+
+    /// Get contract version
+    pub fn version() -> u32 {
+        1
     }
 }
