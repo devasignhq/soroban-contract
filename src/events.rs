@@ -1,8 +1,6 @@
 use soroban_sdk::{Env, Address, String};
 use crate::types::*;
 
-/// Event emission helper functions for consistent event handling
-
 /// Emit an EscrowCreated event
 pub fn emit_escrow_created(
     env: &Env,
@@ -10,13 +8,12 @@ pub fn emit_escrow_created(
     creator: Address,
     bounty_amount: i128,
 ) {
-    let event = EscrowCreatedEvent {
+    EscrowCreatedEvent {
         task_id,
         creator,
         bounty_amount,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("EscrowCreated",), event);
+    }.publish(env);
 }
 
 /// Emit a ContributorAssigned event
@@ -25,12 +22,11 @@ pub fn emit_contributor_assigned(
     task_id: String,
     contributor: Address,
 ) {
-    let event = ContributorAssignedEvent {
+    ContributorAssignedEvent {
         task_id,
         contributor,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("ContributorAssigned",), event);
+    }.publish(env);
 }
 
 /// Emit a TaskCompleted event
@@ -39,12 +35,11 @@ pub fn emit_task_completed(
     task_id: String,
     contributor: Address,
 ) {
-    let event = TaskCompletedEvent {
+    TaskCompletedEvent {
         task_id,
         contributor,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("TaskCompleted",), event);
+    }.publish(env);
 }
 
 /// Emit a FundsReleased event
@@ -54,13 +49,12 @@ pub fn emit_funds_released(
     contributor: Address,
     amount: i128,
 ) {
-    let event = FundsReleasedEvent {
+    FundsReleasedEvent {
         task_id,
         contributor,
         amount,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("FundsReleased",), event);
+    }.publish(env);
 }
 
 /// Emit a DisputeInitiated event
@@ -70,13 +64,12 @@ pub fn emit_dispute_initiated(
     disputing_party: Address,
     reason: String,
 ) {
-    let event = DisputeInitiatedEvent {
+    DisputeInitiatedEvent {
         task_id,
         disputing_party,
         reason,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("DisputeInitiated",), event);
+    }.publish(env);
 }
 
 /// Emit a DisputeResolved event
@@ -86,13 +79,12 @@ pub fn emit_dispute_resolved(
     resolution: DisputeResolution,
     resolved_by: Address,
 ) {
-    let event = DisputeResolvedEvent {
+    DisputeResolvedEvent {
         task_id,
         resolution,
         resolved_by,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("DisputeResolved",), event);
+    }.publish(env);
 }
 
 /// Emit a RefundProcessed event
@@ -102,11 +94,10 @@ pub fn emit_refund_processed(
     creator: Address,
     amount: i128,
 ) {
-    let event = RefundProcessedEvent {
+    RefundProcessedEvent {
         task_id,
         creator,
         amount,
         timestamp: env.ledger().timestamp(),
-    };
-    env.events().publish(("RefundProcessed",), event);
+    }.publish(env);
 }

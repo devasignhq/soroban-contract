@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, String};
+use soroban_sdk::{contracttype, contractevent, Address, String};
 
 /// Main escrow data structure for storing task information
 #[derive(Clone, Debug, PartialEq)]
@@ -60,8 +60,7 @@ pub enum DisputeResolution {
 // Event structures for off-chain integration
 
 /// Event emitted when a new escrow is created
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct EscrowCreatedEvent {
     pub task_id: String,
     pub creator: Address,
@@ -70,8 +69,7 @@ pub struct EscrowCreatedEvent {
 }
 
 /// Event emitted when a contributor is assigned to a task
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct ContributorAssignedEvent {
     pub task_id: String,
     pub contributor: Address,
@@ -79,8 +77,7 @@ pub struct ContributorAssignedEvent {
 }
 
 /// Event emitted when a task is marked as completed
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct TaskCompletedEvent {
     pub task_id: String,
     pub contributor: Address,
@@ -88,8 +85,7 @@ pub struct TaskCompletedEvent {
 }
 
 /// Event emitted when funds are released to contributor
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct FundsReleasedEvent {
     pub task_id: String,
     pub contributor: Address,
@@ -98,8 +94,7 @@ pub struct FundsReleasedEvent {
 }
 
 /// Event emitted when a dispute is initiated
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct DisputeInitiatedEvent {
     pub task_id: String,
     pub disputing_party: Address,
@@ -108,8 +103,7 @@ pub struct DisputeInitiatedEvent {
 }
 
 /// Event emitted when a dispute is resolved
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct DisputeResolvedEvent {
     pub task_id: String,
     pub resolution: DisputeResolution,
@@ -118,8 +112,7 @@ pub struct DisputeResolvedEvent {
 }
 
 /// Event emitted when a refund is processed
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[contracttype]
+#[contractevent]
 pub struct RefundProcessedEvent {
     pub task_id: String,
     pub creator: Address,
