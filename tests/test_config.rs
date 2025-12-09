@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env, String};
+use soroban_sdk::{Env, String};
 
 /// Test configuration constants and utilities for consistent testing
 pub struct TestConfig;
@@ -16,14 +16,6 @@ impl TestConfig {
     /// Maximum: Address valid USDC amount (1 billion USDC)
     pub const MAX_VALID_AMOUNT: i128 = 1_000_000_000_0000000;
 
-    /// Standard task ID prefixes for different test scenarios
-    pub const HAPPY_PATH_PREFIX: &'static str = "happy-path";
-    pub const DISPUTE_PREFIX: &'static str = "dispute";
-    pub const REFUND_PREFIX: &'static str = "refund";
-    pub const ERROR_PREFIX: &'static str = "error";
-    pub const PERFORMANCE_PREFIX: &'static str = "perf";
-    pub const CONCURRENT_PREFIX: &'static str = "concurrent";
-
     /// Standard dispute reasons for testing
     pub const QUALITY_DISPUTE: &'static str = "Work quality does not meet requirements";
     pub const DEADLINE_DISPUTE: &'static str = "Deadline was missed without communication";
@@ -34,16 +26,6 @@ impl TestConfig {
     pub const ONE_HOUR: u64 = 3600;
     pub const ONE_DAY: u64 = 86400;
     pub const ONE_WEEK: u64 = 604800;
-
-    /// Performance testing constants
-    pub const SMALL_BENCHMARK_SIZE: u32 = 5;
-    pub const MEDIUM_BENCHMARK_SIZE: u32 = 10;
-    pub const LARGE_BENCHMARK_SIZE: u32 = 25;
-
-    /// Concurrent testing constants
-    pub const SMALL_CONCURRENT_COUNT: u32 = 3;
-    pub const MEDIUM_CONCURRENT_COUNT: u32 = 10;
-    pub const LARGE_CONCURRENT_COUNT: u32 = 25;
 }
 
 /// Test scenario templates for consistent test setup
