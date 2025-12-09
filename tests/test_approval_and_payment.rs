@@ -37,7 +37,7 @@ fn test_approve_completion_success() {
         usdc_address,
         usdc_token, 
         usdc_token_client, 
-        _contract_id, 
+        contract_id, 
         client
     ) = create_test_env();
     
@@ -50,7 +50,7 @@ fn test_approve_completion_success() {
     
     // Get initial balances
     let initial_contributor_balance = usdc_token_client.balance(&contributor);
-    let initial_contract_balance = usdc_token_client.balance(&env.current_contract_address());
+    let initial_contract_balance = usdc_token_client.balance(&contract_id);
     
     // Approve completion
     let result = client.approve_completion(&task_id);
@@ -58,7 +58,7 @@ fn test_approve_completion_success() {
     
     // Verify payment transfer
     let final_contributor_balance = usdc_token_client.balance(&contributor);
-    let final_contract_balance = usdc_token_client.balance(&env.current_contract_address());
+    let final_contract_balance = usdc_token_client.balance(&contract_id);
     
     assert_eq!(final_contributor_balance, initial_contributor_balance + bounty_amount);
     assert_eq!(final_contract_balance, initial_contract_balance - bounty_amount);
