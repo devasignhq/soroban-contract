@@ -43,4 +43,5 @@ pub enum Error {
     InvalidTaskIdCharacters = 47,
     AmountTooSmall = 48,
     DisputeReasonTooShort = 49,
+    InvalidIssueUrl = 50,
 }

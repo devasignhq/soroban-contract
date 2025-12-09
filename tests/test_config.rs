@@ -195,6 +195,11 @@ impl TestValidation {
             ),
         }
     }
+
+    /// Generate valid issue URL for testing
+    pub fn dummy_issue_url(env: &Env) -> String {
+        String::from_str(env, "https://github.com/owner/repo/issues/1")
+    }
 }
 
 #[cfg(test)]

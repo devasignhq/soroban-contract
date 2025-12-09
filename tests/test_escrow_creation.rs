@@ -31,7 +31,7 @@ fn test_create_escrow_success() {
     usdc_token.mint(&creator, &bounty_amount);
     
     // Create escrow
-    let result = client.create_escrow(&creator, &task_id, &bounty_amount);
+    let result = client.create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &bounty_amount);
     assert!(result == ());
     
     // Verify escrow was created
@@ -41,6 +41,7 @@ fn test_create_escrow_success() {
     let escrow_data = escrow;
     assert_eq!(escrow_data.creator, creator);
     assert_eq!(escrow_data.task_id, task_id);
+    assert_eq!(escrow_data.issue_url, TestValidation::dummy_issue_url(&env));
     assert_eq!(escrow_data.bounty_amount, bounty_amount);
     assert_eq!(escrow_data.status, TaskStatus::Open);
     assert_eq!(escrow_data.has_contributor, false);
@@ -75,7 +76,7 @@ fn test_create_escrow_multiple_amounts() {
         usdc_token.mint(&creator, &amount);
         
         // Create escrow
-        let result = client.create_escrow(&creator, &task_id, &amount);
+        let result = client.create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &amount);
         assert!(result == ());
         
         // Verify escrow
@@ -114,7 +115,7 @@ fn test_create_escrow_boundary_amounts() {
         usdc_token.mint(&creator, &amount);
         
         // Create escrow
-        let result = client.create_escrow(&creator, &task_id, &amount);
+        let result = client.create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &amount);
         assert!(result == ());
     }
 }
@@ -141,7 +142,7 @@ fn test_create_escrow_invalid_amounts() {
         let task_id = TestValidation::generate_task_id(&env, "invalid", i as u32);
         
         // Try to create escrow with invalid amount
-        let result = client.try_create_escrow(&creator, &task_id, &amount);
+        let result = client.try_create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &amount);
         assert!(result.is_err(), "Should fail with invalid amount: {}", amount);
         
         let error = result.unwrap_err().unwrap();
@@ -172,11 +173,11 @@ fn test_create_escrow_duplicate_task_id() {
     usdc_token.mint(&creator, &(bounty_amount * 2));
     
     // Create first escrow
-    let result = client.create_escrow(&creator, &task_id, &bounty_amount);
+    let result = client.create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &bounty_amount);
     assert!(result == ());
     
     // Try to create duplicate
-    let result = client.try_create_escrow(&creator, &task_id, &bounty_amount);
+    let result = client.try_create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &bounty_amount);
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().unwrap(), Error::TaskAlreadyExists);
 }
@@ -206,6 +207,7 @@ fn test_create_escrow_invalid_task_ids() {
     let result = client.try_create_escrow(
         &creator, 
         &String::from_str(&env, &"".to_string()), 
+        &TestValidation::dummy_issue_url(&env),
         &bounty_amount
     );
     assert!(result.is_err());
@@ -215,6 +217,7 @@ fn test_create_escrow_invalid_task_ids() {
     let result = client.try_create_escrow(
         &creator, 
         &String::from_str(&env, &"ab".to_string()), 
+        &TestValidation::dummy_issue_url(&env),
         &bounty_amount
     );
     assert!(result.is_err());
@@ -225,6 +228,7 @@ fn test_create_escrow_invalid_task_ids() {
     let result = client.try_create_escrow(
         &creator, 
         &String::from_str(&env, &long_id), 
+        &TestValidation::dummy_issue_url(&env),
         &bounty_amount
     );
     assert!(result.is_err());
@@ -251,7 +255,7 @@ fn test_create_escrow_insufficient_balance() {
     let bounty_amount = TestConfig::MEDIUM_AMOUNT;
     
     // Don't fund creator (insufficient balance)
-    let result = client.try_create_escrow(&creator, &task_id, &bounty_amount);
+    let result = client.try_create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &bounty_amount);
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().unwrap(), Error::InsufficientBalance);
 }
@@ -273,7 +277,7 @@ fn test_create_escrow_not_initialized() {
     let bounty_amount = TestConfig::MEDIUM_AMOUNT;
     
     // Try to create escrow without initializing contract
-    let result = client.try_create_escrow(&creator, &task_id, &bounty_amount);
+    let result = client.try_create_escrow(&creator, &task_id, &TestValidation::dummy_issue_url(&env), &bounty_amount);
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().unwrap(), Error::ContractNotInitialized);
 }

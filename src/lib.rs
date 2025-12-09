@@ -106,7 +106,7 @@ impl TaskEscrowContract {
 
     /// Create a new escrow for a task with locked USDC funds
     /// Transfers USDC from creator to contract and creates escrow record
-    pub fn create_escrow(env: Env, creator: Address, task_id: String, bounty_amount: i128) -> Result<(), Error> {
+    pub fn create_escrow(env: Env, creator: Address, task_id: String, issue_url: String, bounty_amount: i128) -> Result<(), Error> {
         // Validate contract state and initialization
         Self::validate_contract_state(&env)?;
 
@@ -118,6 +118,9 @@ impl TaskEscrowContract {
 
         // Validate task_id format with enhanced checks
         Self::validate_task_id(&task_id)?;
+
+        // Validate issue_url
+        Self::validate_issue_url(&issue_url)?;
 
         // Validate bounty amount with enhanced checks
         Self::validate_amount(bounty_amount)?;
@@ -139,6 +142,7 @@ impl TaskEscrowContract {
         let null_address = Address::from_string(&String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"));
         let escrow = TaskEscrow {
             task_id: task_id.clone(),
+            issue_url: issue_url.clone(),
             creator: creator.clone(),
             contributor: null_address, // Use null address placeholder
             has_contributor: false,
@@ -202,6 +206,18 @@ impl TaskEscrowContract {
             return Err(Error::InvalidTaskId);
         }
 
+        Ok(())
+    }
+
+    /// Helper function to validate issue URL
+    fn validate_issue_url(url: &String) -> Result<(), Error> {
+        if url.len() == 0 {
+            return Err(Error::InvalidIssueUrl);
+        }
+        // Basic length check for URL
+        if url.len() > 500 {
+            return Err(Error::InvalidIssueUrl);
+        }
         Ok(())
     }
 

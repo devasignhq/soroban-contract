@@ -5,6 +5,7 @@ use soroban_sdk::{contracttype, contractevent, Address, String};
 #[contracttype]
 pub struct TaskEscrow {
     pub task_id: String,
+    pub issue_url: String, // Github issue URL
     pub creator: Address,
     pub contributor: Address, // Will use a special "null" address when no contributor
     pub has_contributor: bool, // Flag to indicate if contributor is set
