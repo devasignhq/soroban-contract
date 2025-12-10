@@ -10,14 +10,14 @@ pub enum Error {
     TaskAlreadyExists = 2,
     InvalidTaskStatus = 3,
     ContractNotInitialized = 4,
-    
+
     // Permission errors (10-19)
     Unauthorized = 10,
     NotTaskCreator = 11,
     NotTaskContributor = 12,
     NotAdmin = 13,
     OnlyCreatorOrContributor = 14,
-    
+
     // Business logic errors (20-29)
     ContributorAlreadyAssigned = 20,
     NoContributorAssigned = 21,
@@ -26,12 +26,12 @@ pub enum Error {
     TaskNotDisputed = 24,
     TaskAlreadyResolved = 25,
     CannotRefundWithContributor = 26,
-    
+
     // Token errors (30-39)
     TokenTransferFailed = 30,
     InvalidTokenAmount = 31,
     TokenContractNotSet = 32,
-    
+
     // Validation errors (40-49)
     InvalidTaskId = 40,
     InvalidAddress = 41,

@@ -1,14 +1,14 @@
 #![no_std]
 
-mod types;
 mod errors;
 mod events;
+mod types;
 
-pub use types::*;
 pub use errors::*;
 pub use events::*;
+pub use types::*;
 
-use soroban_sdk::{contract, contractimpl, token, Address, Env, String, BytesN};
+use soroban_sdk::{contract, contractimpl, token, Address, BytesN, Env, String};
 
 #[contract]
 pub struct TaskEscrowContract;
@@ -31,8 +31,10 @@ impl TaskEscrowContract {
 
         // Store admin and USDC token addresses
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
-        
+        env.storage()
+            .instance()
+            .set(&DataKey::UsdcToken, &usdc_token);
+
         // Initialize task count to 0
         env.storage().instance().set(&DataKey::TaskCount, &0u64);
 
@@ -64,7 +66,9 @@ impl TaskEscrowContract {
         Self::validate_address(&new_usdc_token)?;
 
         // Update USDC token address
-        env.storage().instance().set(&DataKey::UsdcToken, &new_usdc_token);
+        env.storage()
+            .instance()
+            .set(&DataKey::UsdcToken, &new_usdc_token);
 
         Ok(())
     }
@@ -87,11 +91,12 @@ impl TaskEscrowContract {
 
     /// Helper function to validate admin access
     fn require_admin(env: &Env) -> Result<(), Error> {
-        let admin: Address = env.storage()
+        let admin: Address = env
+            .storage()
             .instance()
             .get(&DataKey::Admin)
             .ok_or(Error::ContractNotInitialized)?;
-        
+
         // Require authentication from the admin address
         admin.require_auth();
 
@@ -100,13 +105,19 @@ impl TaskEscrowContract {
 
     /// Helper function to check if contract is initialized
     fn is_initialized(env: &Env) -> bool {
-        env.storage().instance().has(&DataKey::Admin) && 
-        env.storage().instance().has(&DataKey::UsdcToken)
+        env.storage().instance().has(&DataKey::Admin)
+            && env.storage().instance().has(&DataKey::UsdcToken)
     }
 
     /// Create a new escrow for a task with locked USDC funds
     /// Transfers USDC from creator to contract and creates escrow record
-    pub fn create_escrow(env: Env, creator: Address, task_id: String, issue_url: String, bounty_amount: i128) -> Result<(), Error> {
+    pub fn create_escrow(
+        env: Env,
+        creator: Address,
+        task_id: String,
+        issue_url: String,
+        bounty_amount: i128,
+    ) -> Result<(), Error> {
         // Validate contract state and initialization
         Self::validate_contract_state(&env)?;
 
@@ -139,7 +150,10 @@ impl TaskEscrowContract {
         Self::transfer_usdc_to_contract(&env, &creator, bounty_amount)?;
 
         // Create escrow record
-        let null_address = Address::from_string(&String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"));
+        let null_address = Address::from_string(&String::from_str(
+            &env,
+            "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+        ));
         let escrow = TaskEscrow {
             task_id: task_id.clone(),
             issue_url: issue_url.clone(),
@@ -154,14 +168,19 @@ impl TaskEscrowContract {
         };
 
         // Store escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
         // Increment task count
-        let current_count: u64 = env.storage()
+        let current_count: u64 = env
+            .storage()
             .instance()
             .get(&DataKey::TaskCount)
             .unwrap_or(0);
-        env.storage().instance().set(&DataKey::TaskCount, &(current_count + 1));
+        env.storage()
+            .instance()
+            .set(&DataKey::TaskCount, &(current_count + 1));
 
         // Emit escrow created event
         crate::events::emit_escrow_created(&env, task_id, creator, bounty_amount);
@@ -191,7 +210,9 @@ impl TaskEscrowContract {
 
     /// Helper function to check if a task exists
     fn task_exists(env: &Env, task_id: &String) -> bool {
-        env.storage().persistent().has(&DataKey::TaskEscrow(task_id.clone()))
+        env.storage()
+            .persistent()
+            .has(&DataKey::TaskEscrow(task_id.clone()))
     }
 
     /// Helper function to validate task ID format with comprehensive checks
@@ -200,7 +221,7 @@ impl TaskEscrowContract {
         if task_id.len() == 0 {
             return Err(Error::EmptyTaskId);
         }
-        
+
         // Check required length (25 characters)
         if task_id.len() != 25 {
             return Err(Error::InvalidTaskId);
@@ -227,32 +248,36 @@ impl TaskEscrowContract {
         if amount <= 0 {
             return Err(Error::InvalidAmount);
         }
-        
+
         // Check minimum amount (0.01 USDC = 100000 stroops)
         // This prevents dust amounts that could cause issues
         if amount < 100000 {
             return Err(Error::InvalidAmount);
         }
-        
+
         // Check for reasonable upper limit (1 billion USDC)
         // USDC has 7 decimal places, so this is 1,000,000,000.0000000 USDC
         if amount > 1_000_000_000_0000000 {
             return Err(Error::InvalidTokenAmount);
         }
-        
+
         // Validate precision - USDC has 7 decimal places
         // Ensure the amount is properly formatted for USDC
         // This prevents precision errors in token operations
         if amount % 1 != 0 {
             return Err(Error::InvalidTokenAmount);
         }
-        
+
         Ok(())
     }
 
     /// Assign a contributor to a task
     /// Can only be called by the task creator when task is in Open status
-    pub fn assign_contributor(env: Env, task_id: String, contributor: Address) -> Result<(), Error> {
+    pub fn assign_contributor(
+        env: Env,
+        task_id: String,
+        contributor: Address,
+    ) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
 
@@ -263,7 +288,8 @@ impl TaskEscrowContract {
         Self::validate_address(&contributor)?;
 
         // Get the existing escrow
-        let mut escrow: TaskEscrow = env.storage()
+        let mut escrow: TaskEscrow = env
+            .storage()
             .persistent()
             .get(&DataKey::TaskEscrow(task_id.clone()))
             .ok_or(Error::TaskNotFound)?;
@@ -282,7 +308,9 @@ impl TaskEscrowContract {
         escrow.status = TaskStatus::InProgress;
 
         // Store updated escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
         // Emit contributor assigned event
         crate::events::emit_contributor_assigned(&env, task_id, contributor);
@@ -290,9 +318,9 @@ impl TaskEscrowContract {
         Ok(())
     }
 
-    /// Mark a task as completed by the assigned contributor
-    /// Can only be called by the assigned contributor when task is in InProgress status
-    pub fn complete_task(env: Env, task_id: String) -> Result<(), Error> {
+    /// Approve task completion and release funds to contributor
+    /// Can only be called by the task creator when task is in InProgress status
+    pub fn approve_completion(env: Env, task_id: String) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
 
@@ -300,10 +328,14 @@ impl TaskEscrowContract {
         Self::validate_task_id(&task_id)?;
 
         // Get the existing escrow
-        let mut escrow: TaskEscrow = env.storage()
+        let mut escrow: TaskEscrow = env
+            .storage()
             .persistent()
             .get(&DataKey::TaskEscrow(task_id.clone()))
             .ok_or(Error::TaskNotFound)?;
+
+        // Require authentication from the task creator
+        escrow.creator.require_auth();
 
         // Validate task status (must be InProgress)
         if escrow.status != TaskStatus::InProgress {
@@ -315,58 +347,17 @@ impl TaskEscrowContract {
             return Err(Error::NoContributorAssigned);
         }
 
-        // Require authentication from the assigned contributor
-        escrow.contributor.require_auth();
-
-        // Update escrow status and completion timestamp
-        escrow.status = TaskStatus::Completed;
-        escrow.completed_at = env.ledger().timestamp();
-
-        // Store updated escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
-
-        // Emit task completed event
-        crate::events::emit_task_completed(&env, task_id, escrow.contributor);
-
-        Ok(())
-    }
-
-    /// Approve task completion and release funds to contributor
-    /// Can only be called by the task creator when task is in Completed status
-    pub fn approve_completion(env: Env, task_id: String) -> Result<(), Error> {
-        // Validate contract state
-        Self::validate_contract_state(&env)?;
-
-        // Validate task_id format with enhanced checks
-        Self::validate_task_id(&task_id)?;
-
-        // Get the existing escrow
-        let mut escrow: TaskEscrow = env.storage()
-            .persistent()
-            .get(&DataKey::TaskEscrow(task_id.clone()))
-            .ok_or(Error::TaskNotFound)?;
-
-        // Require authentication from the task creator
-        escrow.creator.require_auth();
-
-        // Validate task status (must be Completed)
-        if escrow.status != TaskStatus::Completed {
-            return Err(Error::TaskNotCompleted);
-        }
-
-        // Validate that a contributor is assigned
-        if !escrow.has_contributor {
-            return Err(Error::NoContributorAssigned);
-        }
-
         // Transfer USDC from contract to contributor using safe helper
         Self::transfer_usdc_from_contract(&env, &escrow.contributor, escrow.bounty_amount)?;
 
-        // Update escrow status to resolved
-        escrow.status = TaskStatus::Resolved;
+        // Update escrow status to Completed
+        escrow.status = TaskStatus::Completed;
+        escrow.completed_at = env.ledger().timestamp(); // Mark completed time
 
         // Store updated escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
         // Emit funds released event
         crate::events::emit_funds_released(&env, task_id, escrow.contributor, escrow.bounty_amount);
@@ -376,7 +367,12 @@ impl TaskEscrowContract {
 
     /// Initiate a dispute for a task
     /// Can be called by either the task creator or assigned contributor
-    pub fn dispute_task(env: Env, disputing_party: Address, task_id: String, reason: String) -> Result<(), Error> {
+    pub fn dispute_task(
+        env: Env,
+        disputing_party: Address,
+        task_id: String,
+        reason: String,
+    ) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
 
@@ -393,7 +389,8 @@ impl TaskEscrowContract {
         disputing_party.require_auth();
 
         // Get the existing escrow
-        let mut escrow: TaskEscrow = env.storage()
+        let mut escrow: TaskEscrow = env
+            .storage()
             .persistent()
             .get(&DataKey::TaskEscrow(task_id.clone()))
             .ok_or(Error::TaskNotFound)?;
@@ -403,11 +400,10 @@ impl TaskEscrowContract {
             return Err(Error::NoContributorAssigned);
         }
 
-        // Validate task is either InProgress or Completed
-        if escrow.status == TaskStatus::Resolved || 
-        escrow.status == TaskStatus::Disputed || 
-        escrow.status == TaskStatus::Cancelled {
-            return Err(Error::TaskAlreadyResolved);
+        // Validate task is InProgress. 
+        // If it is already Completed (paid), Disputed, or Cancelled, we can't dispute
+        if escrow.status != TaskStatus::InProgress {
+            return Err(Error::InvalidTaskStatus);
         }
 
         // Validate that the disputing party is either creator or contributor
@@ -427,14 +423,18 @@ impl TaskEscrowContract {
         };
 
         // Store dispute info
-        env.storage().persistent().set(&DataKey::Dispute(task_id.clone()), &dispute_info);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Dispute(task_id.clone()), &dispute_info);
 
         // Update escrow status to disputed
         escrow.status = TaskStatus::Disputed;
         escrow.disputed_at = env.ledger().timestamp();
 
         // Store updated escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
         // Emit dispute initiated event
         crate::events::emit_dispute_initiated(&env, task_id, disputing_party, reason);
@@ -448,17 +448,17 @@ impl TaskEscrowContract {
         if reason.len() == 0 {
             return Err(Error::InvalidDisputeReason);
         }
-        
+
         // Check minimum length (at least 10 characters for meaningful dispute reasons)
         if reason.len() < 10 {
             return Err(Error::InvalidDisputeReason);
         }
-        
+
         // Check maximum length (reasonable limit for storage and readability)
         if reason.len() > 500 {
             return Err(Error::InvalidDisputeReason);
         }
-        
+
         Ok(())
     }
 
@@ -474,24 +474,24 @@ impl TaskEscrowContract {
     fn validate_partial_payment(partial_amount: i128, total_amount: i128) -> Result<(), Error> {
         // Validate the partial amount itself
         Self::validate_amount(partial_amount)?;
-        
+
         // Ensure partial amount doesn't exceed total amount
         if partial_amount > total_amount {
             return Err(Error::InvalidTokenAmount);
         }
-        
+
         // Ensure partial amount is meaningful (at least 1% of total)
         let minimum_partial = total_amount / 100; // 1% minimum
         if partial_amount < minimum_partial {
             return Err(Error::InvalidTokenAmount);
         }
-        
+
         // Ensure remaining amount is also meaningful (at least 1% of total)
         let remaining = total_amount - partial_amount;
         if remaining < minimum_partial {
             return Err(Error::InvalidTokenAmount);
         }
-        
+
         Ok(())
     }
 
@@ -501,27 +501,33 @@ impl TaskEscrowContract {
         if !Self::is_initialized(env) {
             return Err(Error::ContractNotInitialized);
         }
-        
+
         // Verify admin address exists and is valid
-        let admin: Address = env.storage()
+        let admin: Address = env
+            .storage()
             .instance()
             .get(&DataKey::Admin)
             .ok_or(Error::ContractNotInitialized)?;
         Self::validate_address(&admin)?;
-        
+
         // Verify USDC token address exists and is valid
-        let usdc_token: Address = env.storage()
+        let usdc_token: Address = env
+            .storage()
             .instance()
             .get(&DataKey::UsdcToken)
             .ok_or(Error::TokenContractNotSet)?;
         Self::validate_address(&usdc_token)?;
-        
+
         Ok(())
     }
 
     /// Resolve a dispute with admin authority
     /// Can only be called by admin when task is in Disputed status
-    pub fn resolve_dispute(env: Env, task_id: String, resolution: DisputeResolution) -> Result<(), Error> {
+    pub fn resolve_dispute(
+        env: Env,
+        task_id: String,
+        resolution: DisputeResolution,
+    ) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
 
@@ -532,7 +538,8 @@ impl TaskEscrowContract {
         Self::require_admin(&env)?;
 
         // Get the existing escrow
-        let mut escrow: TaskEscrow = env.storage()
+        let mut escrow: TaskEscrow = env
+            .storage()
             .persistent()
             .get(&DataKey::TaskEscrow(task_id.clone()))
             .ok_or(Error::TaskNotFound)?;
@@ -548,7 +555,8 @@ impl TaskEscrowContract {
         }
 
         // Get admin address for event emission
-        let admin: Address = env.storage()
+        let admin: Address = env
+            .storage()
             .instance()
             .get(&DataKey::Admin)
             .ok_or(Error::ContractNotInitialized)?;
@@ -558,29 +566,32 @@ impl TaskEscrowContract {
             DisputeResolution::PayContributor => {
                 // Transfer full amount to contributor using safe helper
                 Self::transfer_usdc_from_contract(&env, &escrow.contributor, escrow.bounty_amount)?;
-            },
+            }
             DisputeResolution::RefundCreator => {
                 // Transfer full amount back to creator using safe helper
                 Self::transfer_usdc_from_contract(&env, &escrow.creator, escrow.bounty_amount)?;
-            },
+            }
             DisputeResolution::PartialPayment(amount) => {
                 // Validate partial payment amount with enhanced checks
                 Self::validate_partial_payment(amount, escrow.bounty_amount)?;
 
                 // Transfer partial amount to contributor using safe helper
                 Self::transfer_usdc_from_contract(&env, &escrow.contributor, amount)?;
-                
+
                 // Transfer remaining amount to creator using safe helper
                 let remaining = escrow.bounty_amount - amount;
                 Self::transfer_usdc_from_contract(&env, &escrow.creator, remaining)?;
             }
         }
 
-        // Update escrow status to resolved
-        escrow.status = TaskStatus::Resolved;
+        // Update escrow status to completed
+        escrow.status = TaskStatus::Completed;
+        escrow.completed_at = env.ledger().timestamp(); // Mark as completed
 
         // Store updated escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
         // Emit dispute resolved event
         crate::events::emit_dispute_resolved(&env, task_id, resolution, admin);
@@ -598,7 +609,8 @@ impl TaskEscrowContract {
         Self::validate_task_id(&task_id)?;
 
         // Get the existing escrow
-        let mut escrow: TaskEscrow = env.storage()
+        let mut escrow: TaskEscrow = env
+            .storage()
             .persistent()
             .get(&DataKey::TaskEscrow(task_id.clone()))
             .ok_or(Error::TaskNotFound)?;
@@ -623,7 +635,9 @@ impl TaskEscrowContract {
         escrow.status = TaskStatus::Cancelled;
 
         // Store updated escrow data
-        env.storage().persistent().set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
         // Emit refund processed event
         crate::events::emit_refund_processed(&env, task_id, escrow.creator, escrow.bounty_amount);
@@ -675,7 +689,11 @@ impl TaskEscrowContract {
 
     /// Check if an address has sufficient USDC balance for a specific amount
     /// Returns true if balance >= required_amount, false otherwise
-    pub fn has_sufficient_usdc_balance(env: Env, address: Address, required_amount: i128) -> Result<bool, Error> {
+    pub fn has_sufficient_usdc_balance(
+        env: Env,
+        address: Address,
+        required_amount: i128,
+    ) -> Result<bool, Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
 
@@ -693,7 +711,12 @@ impl TaskEscrowContract {
 
     /// Transfer USDC tokens from one address to another with proper error handling
     /// This is a safe wrapper around the token transfer functionality
-    fn transfer_usdc_safe(env: &Env, from: &Address, to: &Address, amount: i128) -> Result<(), Error> {
+    fn transfer_usdc_safe(
+        env: &Env,
+        from: &Address,
+        to: &Address,
+        amount: i128,
+    ) -> Result<(), Error> {
         // Validate addresses
         Self::validate_address(from)?;
         Self::validate_address(to)?;

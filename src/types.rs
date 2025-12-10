@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, contractevent, Address, String};
+use soroban_sdk::{contractevent, contracttype, Address, String};
 
 /// Main escrow data structure for storing task information
 #[derive(Clone, Debug, PartialEq)]
@@ -13,7 +13,7 @@ pub struct TaskEscrow {
     pub status: TaskStatus,
     pub created_at: u64,
     pub completed_at: u64, // Will use 0 when not set
-    pub disputed_at: u64, // Will use 0 when not set
+    pub disputed_at: u64,  // Will use 0 when not set
 }
 
 /// Task status enumeration for lifecycle management
@@ -24,7 +24,6 @@ pub enum TaskStatus {
     InProgress,
     Completed,
     Disputed,
-    Resolved,
     Cancelled,
 }
 
@@ -42,20 +41,20 @@ pub struct DisputeInfo {
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
-    TaskEscrow(String),      // task_id -> TaskEscrow
-    Admin,                   // Admin address
-    UsdcToken,              // USDC token contract address
-    TaskCount,              // Total number of tasks
-    Dispute(String),        // task_id -> DisputeInfo
+    TaskEscrow(String), // task_id -> TaskEscrow
+    Admin,              // Admin address
+    UsdcToken,          // USDC token contract address
+    TaskCount,          // Total number of tasks
+    Dispute(String),    // task_id -> DisputeInfo
 }
 
 /// Dispute resolution options for admin
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub enum DisputeResolution {
-    PayContributor,         // Full payment to contributor
-    RefundCreator,          // Full refund to creator
-    PartialPayment(i128),   // Partial payment to contributor, rest to creator
+    PayContributor,       // Full payment to contributor
+    RefundCreator,        // Full refund to creator
+    PartialPayment(i128), // Partial payment to contributor, rest to creator
 }
 
 // Event structures for off-chain integration

@@ -41,15 +41,8 @@ mod tests {
 
     #[test]
     fn test_setup_works() {
-        let (
-            _env, 
-            _admin, 
-            _usdc_address,
-            _usdc_token, 
-            _usdc_token_client, 
-            _contract_id, 
-            _client
-        ) = create_test_env();
+        let (_env, _admin, _usdc_address, _usdc_token, _usdc_token_client, _contract_id, _client) =
+            create_test_env();
         // Basic test to ensure setup works
         assert!(true);
     }

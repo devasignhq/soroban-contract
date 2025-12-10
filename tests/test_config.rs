@@ -26,6 +26,16 @@ impl TestConfig {
     pub const ONE_HOUR: u64 = 3600;
     pub const ONE_DAY: u64 = 86400;
     pub const ONE_WEEK: u64 = 604800;
+
+    /// Performance testing constants
+    pub const SMALL_BENCHMARK_SIZE: u32 = 5;
+    pub const MEDIUM_BENCHMARK_SIZE: u32 = 10;
+    pub const LARGE_BENCHMARK_SIZE: u32 = 25;
+
+    /// Concurrent testing constants
+    pub const SMALL_CONCURRENT_COUNT: u32 = 3;
+    pub const MEDIUM_CONCURRENT_COUNT: u32 = 10;
+    pub const LARGE_CONCURRENT_COUNT: u32 = 25;
 }
 
 /// Test scenario templates for consistent test setup
@@ -252,8 +262,12 @@ mod tests {
         assert!(!TestValidation::is_valid_usdc_amount(-1));
 
         // Test task ID validation
-        assert!(TestValidation::is_valid_task_id("cmdkipba20002yl0v8pro56h9"));
-        assert!(TestValidation::is_valid_task_id("cmdkrs3w200010p0wqo0rm6j3"));
+        assert!(TestValidation::is_valid_task_id(
+            "cmdkipba20002yl0v8pro56h9"
+        ));
+        assert!(TestValidation::is_valid_task_id(
+            "cmdkrs3w200010p0wqo0rm6j3"
+        ));
         assert!(!TestValidation::is_valid_task_id("ab")); // Too short
         assert!(!TestValidation::is_valid_task_id("")); // Empty
 
