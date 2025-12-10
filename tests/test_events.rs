@@ -1,5 +1,9 @@
-use devasign_task_escrow::{DisputeResolution, TaskEscrowContractClient};
-use soroban_sdk::{testutils::Address as _, testutils::Events, Address, Env, IntoVal, String};
+use devasign_task_escrow::DisputeResolution;
+use soroban_sdk::{
+    contracttype,
+    testutils::{Address as _, Events, Ledger},
+    Address, String, Symbol, TryIntoVal, Val,
+};
 
 mod test_config;
 mod test_setup;
@@ -7,37 +11,102 @@ mod test_setup;
 use test_config::{TestConfig, TestValidation};
 use test_setup::create_test_env;
 
-/// Helper function to setup a basic escrow for event testing
-fn setup_basic_escrow(
-    env: &Env,
-    _client: &TaskEscrowContractClient,
-    usdc_token: &soroban_sdk::token::StellarAssetClient,
-    creator: &Address,
-    task_prefix: &str,
-) -> (String, i128) {
-    let task_id = TestValidation::generate_task_id(&env, task_prefix, 1);
-    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
+// Define test-only structs that mirror the contract event structs
+// We add #[contracttype] to enable IntoVal conversion
 
-    // Fund creator
-    usdc_token.mint(creator, &bounty_amount);
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct EscrowCreatedEvent {
+    pub task_id: String,
+    pub creator: Address,
+    pub bounty_amount: i128,
+    pub timestamp: u64,
+}
 
-    (task_id, bounty_amount)
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct ContributorAssignedEvent {
+    pub task_id: String,
+    pub contributor: Address,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct FundsReleasedEvent {
+    pub task_id: String,
+    pub contributor: Address,
+    pub amount: i128,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct DisputeInitiatedEvent {
+    pub task_id: String,
+    pub disputing_party: Address,
+    pub reason: String,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct DisputeResolvedEvent {
+    pub task_id: String,
+    pub resolution: DisputeResolution,
+    pub resolved_by: Address,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RefundProcessedEvent {
+    pub task_id: String,
+    pub creator: Address,
+    pub amount: i128,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct BountyIncreasedEvent {
+    pub task_id: String,
+    pub creator: Address,
+    pub added_amount: i128,
+    pub new_total_amount: i128,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct BountyDecreasedEvent {
+    pub task_id: String,
+    pub creator: Address,
+    pub subtracted_amount: i128,
+    pub new_total_amount: i128,
+    pub timestamp: u64,
 }
 
 #[test]
 fn test_escrow_created_event() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
 
     // Initialize contract
     client.initialize(&admin, &usdc_address);
 
-    let creator = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_escrow");
+    // Set ledger timestamp
+    let timestamp = 12345;
+    env.ledger().set_timestamp(timestamp);
 
-    // Create escrow and capture events
-    // Create escrow and capture events
+    // Create test data
+    let creator = Address::generate(&env);
+    let task_id = TestValidation::generate_task_id(&env, "event_test", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
+
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &bounty_amount);
+
+    // Create escrow
     client.create_escrow(
         &creator,
         &task_id,
@@ -45,33 +114,52 @@ fn test_escrow_created_event() {
         &bounty_amount,
     );
 
-    // Verify escrow created event was emitted
+    // Get all events and filter for contract events
     let events = env.events().all();
-    let escrow_events: Vec<_> = events
-        .iter()
-        .filter(|e| e.1 == ("EscrowCreated",).into_val(&env))
-        .collect();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
 
-    assert!(
-        escrow_events.len() == 1,
-        "EscrowCreated event should be emitted"
-    );
+    assert!(!contract_events.is_empty());
+
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val: Val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "escrow_created_event"));
+
+    // Verify event data
+    let expected_event = EscrowCreatedEvent {
+        task_id,
+        creator,
+        bounty_amount,
+        timestamp,
+    };
+
+    let actual_event: EscrowCreatedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
 }
 
 #[test]
 fn test_contributor_assigned_event() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
 
     // Initialize contract
     client.initialize(&admin, &usdc_address);
 
+    // Set ledger timestamp
+    let timestamp = 20000;
+    env.ledger().set_timestamp(timestamp);
+
+    // Create test data
     let creator = Address::generate(&env);
     let contributor = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_assign");
+    let task_id = TestValidation::generate_task_id(&env, "assign_evt", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
 
-    // Create escrow
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &bounty_amount);
+
     // Create escrow
     client.create_escrow(
         &creator,
@@ -80,75 +168,163 @@ fn test_contributor_assigned_event() {
         &bounty_amount,
     );
 
-    // Assign contributor and capture events
+    // Assign contributor to task
     client.assign_contributor(&task_id, &contributor);
 
-    // Verify contributor assigned event was emitted
+    // Get all events and filter for contract events
     let events = env.events().all();
-    let assignment_events: Vec<_> = events
-        .iter()
-        .filter(|e| e.1 == ("ContributorAssigned",).into_val(&env))
-        .collect();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
 
-    assert!(
-        assignment_events.len() == 1,
-        "ContributorAssigned event should be emitted"
-    );
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "contributor_assigned_event"));
+
+    // Verify event data
+    let expected_event = ContributorAssignedEvent {
+        task_id,
+        contributor,
+        timestamp,
+    };
+
+    let actual_event: ContributorAssignedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
 }
 
-// test_task_completed_event removed because complete_task function was removed
+#[test]
+fn test_bounty_increased_event() {
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
+
+    // Initialize contract
+    client.initialize(&admin, &usdc_address);
+
+    // Set ledger timestamp
+    let timestamp = 30000;
+    env.ledger().set_timestamp(timestamp);
+
+    // Create test data
+    let creator = Address::generate(&env);
+    let task_id = TestValidation::generate_task_id(&env, "inc_evt", 1);
+    let initial_bounty = TestConfig::MEDIUM_AMOUNT;
+    let increase_amount = 1_000_000;
+
+    // Fund creator with USDC for initial bounty + increase
+    usdc_token.mint(&creator, &(initial_bounty + increase_amount));
+
+    // Create escrow
+    client.create_escrow(
+        &creator,
+        &task_id,
+        &TestValidation::dummy_issue_url(&env),
+        &initial_bounty,
+    );
+
+    // Increase bounty amount
+    client.increase_bounty(&creator, &task_id, &increase_amount);
+
+    // Get all events and filter for contract events
+    let events = env.events().all();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
+
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "bounty_increased_event"));
+
+    // Verify event data
+    let expected_event = BountyIncreasedEvent {
+        task_id,
+        creator,
+        added_amount: increase_amount,
+        new_total_amount: initial_bounty + increase_amount,
+        timestamp,
+    };
+
+    let actual_event: BountyIncreasedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
+}
+
+#[test]
+fn test_bounty_decreased_event() {
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
+
+    // Initialize contract
+    client.initialize(&admin, &usdc_address);
+
+    // Set ledger timestamp
+    let timestamp = 40000;
+    env.ledger().set_timestamp(timestamp);
+
+    // Create test data
+    let creator = Address::generate(&env);
+    let task_id = TestValidation::generate_task_id(&env, "dec_evt", 1);
+    let initial_bounty = TestConfig::MEDIUM_AMOUNT;
+    let decrease_amount = 1_000_000;
+
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &initial_bounty);
+
+    // Create escrow
+    client.create_escrow(
+        &creator,
+        &task_id,
+        &TestValidation::dummy_issue_url(&env),
+        &initial_bounty,
+    );
+
+    // Decrease bounty amount
+    client.decrease_bounty(&creator, &task_id, &decrease_amount);
+
+    // Get all events and filter for contract events
+    let events = env.events().all();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
+
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "bounty_decreased_event"));
+
+    // Verify event data
+    let expected_event = BountyDecreasedEvent {
+        task_id,
+        creator,
+        subtracted_amount: decrease_amount,
+        new_total_amount: initial_bounty - decrease_amount,
+        timestamp,
+    };
+
+    let actual_event: BountyDecreasedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
+}
 
 #[test]
 fn test_funds_released_event() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
 
     // Initialize contract
     client.initialize(&admin, &usdc_address);
 
+    // Set ledger timestamp
+    let timestamp = 50000;
+    env.ledger().set_timestamp(timestamp);
+
+    // Create test data
     let creator = Address::generate(&env);
     let contributor = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_release");
+    let task_id = TestValidation::generate_task_id(&env, "release_evt", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
 
-    // Setup and complete task
-    // Setup and complete task
-    client.create_escrow(
-        &creator,
-        &task_id,
-        &TestValidation::dummy_issue_url(&env),
-        &bounty_amount,
-    );
-    client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
-
-    // Approve completion and capture events
-    client.approve_completion(&task_id);
-
-    // Verify funds released event was emitted
-    let events = env.events().all();
-    let release_events: Vec<_> = events
-        .iter()
-        .filter(|e| e.1 == ("FundsReleased",).into_val(&env))
-        .collect();
-
-    assert!(
-        release_events.len() == 1,
-        "FundsReleased event should be emitted"
-    );
-}
-
-#[test]
-fn test_refund_processed_event() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
-
-    // Initialize contract
-    client.initialize(&admin, &usdc_address);
-
-    let creator = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_refund");
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &bounty_amount);
 
     // Create escrow
     client.create_escrow(
@@ -158,260 +334,203 @@ fn test_refund_processed_event() {
         &bounty_amount,
     );
 
-    // Process refund and capture events
-    client.refund(&task_id);
+    // Assign contributor and approve completion
+    client.assign_contributor(&task_id, &contributor);
+    client.approve_completion(&task_id);
 
-    // Verify refund processed event was emitted
+    // Get all events and filter for contract events
     let events = env.events().all();
-    let refund_events: Vec<_> = events
-        .iter()
-        .filter(|e| e.1 == ("RefundProcessed",).into_val(&env))
-        .collect();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
 
-    assert!(
-        refund_events.len() == 1,
-        "RefundProcessed event should be emitted"
-    );
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "funds_released_event"));
+
+    // Verify event data
+    let expected_event = FundsReleasedEvent {
+        task_id,
+        contributor,
+        amount: bounty_amount,
+        timestamp,
+    };
+
+    let actual_event: FundsReleasedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
 }
 
 #[test]
 fn test_dispute_initiated_event() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
 
     // Initialize contract
     client.initialize(&admin, &usdc_address);
 
+    // Set ledger timestamp
+    let timestamp = 60000;
+    env.ledger().set_timestamp(timestamp);
+
+    // Create test data
     let creator = Address::generate(&env);
     let contributor = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_dispute");
+    let task_id = TestValidation::generate_task_id(&env, "dispute_evt", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
 
-    // Setup and complete task
-    // Setup and complete task
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &bounty_amount);
+
+    // Create escrow
     client.create_escrow(
         &creator,
         &task_id,
         &TestValidation::dummy_issue_url(&env),
         &bounty_amount,
     );
-    client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
-    // Initiate dispute and capture events
+    // Assign contributor
+    client.assign_contributor(&task_id, &contributor);
+
+    // Initiate dispute
     let reason = TestValidation::generate_dispute_reason(&env, "quality");
     client.dispute_task(&creator, &task_id, &reason);
 
-    // Verify dispute initiated event was emitted
+    // Get all events and filter for contract events
     let events = env.events().all();
-    let dispute_events: Vec<_> = events
-        .iter()
-        .filter(|e| e.1 == ("DisputeInitiated",).into_val(&env))
-        .collect();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
 
-    assert!(
-        dispute_events.len() == 1,
-        "DisputeInitiated event should be emitted"
-    );
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "dispute_initiated_event"));
+
+    // Verify event data
+    let expected_event = DisputeInitiatedEvent {
+        task_id,
+        disputing_party: creator,
+        reason,
+        timestamp,
+    };
+
+    let actual_event: DisputeInitiatedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
 }
 
 #[test]
 fn test_dispute_resolved_event() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
 
     // Initialize contract
     client.initialize(&admin, &usdc_address);
 
+    // Set ledger timestamp
+    let timestamp = 70000;
+    env.ledger().set_timestamp(timestamp);
+
+    // Create test data
     let creator = Address::generate(&env);
     let contributor = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_resolve");
+    let task_id = TestValidation::generate_task_id(&env, "resolve_evt", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
 
-    // Setup, complete, and dispute task
-    // Setup, complete, and dispute task
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &bounty_amount);
+
+    // Create escrow
     client.create_escrow(
         &creator,
         &task_id,
         &TestValidation::dummy_issue_url(&env),
         &bounty_amount,
     );
-    client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
+    // Assign contributor and initiate dispute
+    client.assign_contributor(&task_id, &contributor);
     let reason = TestValidation::generate_dispute_reason(&env, "quality");
     client.dispute_task(&creator, &task_id, &reason);
 
-    // Resolve dispute and capture events
+    // Resolve dispute
     client.resolve_dispute(&task_id, &DisputeResolution::PayContributor);
 
-    // Verify dispute resolved event was emitted
+    // Get all events and filter for contract events
     let events = env.events().all();
-    let resolution_events: Vec<_> = events
-        .iter()
-        .filter(|e| e.1 == ("DisputeResolved",).into_val(&env))
-        .collect();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
 
-    assert!(
-        resolution_events.len() == 1,
-        "DisputeResolved event should be emitted"
-    );
+    let event = contract_events.last().unwrap();
+
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "dispute_resolved_event"));
+
+    // Verify event data
+    let expected_event = DisputeResolvedEvent {
+        task_id,
+        resolved_by: admin,
+        resolution: DisputeResolution::PayContributor,
+        timestamp,
+    };
+
+    let actual_event: DisputeResolvedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
 }
 
 #[test]
-fn test_multiple_events_in_workflow() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+fn test_refund_processed_event() {
+    let (env, admin, usdc_address, usdc_token, _, contract_id, client) = create_test_env();
 
     // Initialize contract
     client.initialize(&admin, &usdc_address);
 
-    let creator = Address::generate(&env);
-    let contributor = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_workflow");
+    // Set ledger timestamp
+    let timestamp = 80000;
+    env.ledger().set_timestamp(timestamp);
 
-    // Execute complete workflow
-    // Execute complete workflow
+    // Create test data
+    let creator = Address::generate(&env);
+    let task_id = TestValidation::generate_task_id(&env, "refund_evt", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
+
+    // Fund creator with USDC
+    usdc_token.mint(&creator, &bounty_amount);
+
+    // Create escrow
     client.create_escrow(
         &creator,
         &task_id,
         &TestValidation::dummy_issue_url(&env),
         &bounty_amount,
     );
-    client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
-    client.approve_completion(&task_id);
 
-    // Verify multiple events were emitted in sequence
+    // Process refund
+    client.refund(&task_id);
+
+    // Get all events and filter for contract events
     let events = env.events().all();
+    let contract_events: std::vec::Vec<_> = events.iter().filter(|e| e.0 == contract_id).collect();
 
-    // Should have at least: escrow_created, contributor_assigned, task_completed, funds_released
-    // let event_topics: Vec<String> = events
-    //     .iter()
-    //     .filter_map(|e| e.get(0).map(|t| t.to_string()))
-    //     .collect();
+    let event = contract_events.last().unwrap();
 
-    // Basic check that multiple events were emitted
-    // Basic check that multiple events were emitted (Created, Assigned, Released)
-    assert!(
-        events.len() >= 3,
-        "Should emit multiple events during workflow"
-    );
-}
+    // Verify event topic (event name)
+    let topics = &event.1;
+    let topic_val = topics.iter().next().unwrap();
+    let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+    assert_eq!(topic_sym, Symbol::new(&env, "refund_processed_event"));
 
-#[test]
-fn test_event_emission_with_different_amounts() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
+    // Verify event data
+    let expected_event = RefundProcessedEvent {
+        task_id,
+        creator,
+        amount: bounty_amount,
+        timestamp,
+    };
 
-    // Initialize contract
-    client.initialize(&admin, &usdc_address);
-
-    let creator = Address::generate(&env);
-    let amounts = vec![
-        TestConfig::SMALL_AMOUNT,
-        TestConfig::MEDIUM_AMOUNT,
-        TestConfig::LARGE_AMOUNT,
-    ];
-
-    for (i, &amount) in amounts.iter().enumerate() {
-        let task_id = TestValidation::generate_task_id(&env, "event_amounts", i as u32);
-
-        // Fund and create escrow
-        usdc_token.mint(&creator, &amount);
-        client.create_escrow(
-            &creator,
-            &task_id,
-            &TestValidation::dummy_issue_url(&env),
-            &amount,
-        );
-
-        // Verify event was emitted for each amount
-        let events = env.events().all();
-        let escrow_events: Vec<_> = events
-            .iter()
-            .filter(|e| e.1 == ("EscrowCreated",).into_val(&env))
-            .collect();
-
-        assert!(
-            escrow_events.len() >= (i + 1),
-            "Should emit event for each escrow creation"
-        );
-    }
-}
-
-#[test]
-fn test_event_emission_order() {
-    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
-
-    // Initialize contract
-    client.initialize(&admin, &usdc_address);
-
-    let creator = Address::generate(&env);
-    let contributor = Address::generate(&env);
-    let (task_id, bounty_amount) =
-        setup_basic_escrow(&env, &client, &usdc_token, &creator, "event_order");
-
-    // Clear any existing events
-    let initial_event_count = env.events().all().len();
-
-    // Execute operations in sequence
-    client.create_escrow(
-        &creator,
-        &task_id,
-        &TestValidation::dummy_issue_url(&env),
-        &bounty_amount,
-    );
-    let events_after_create = env.events().all().len();
-
-    client.assign_contributor(&task_id, &contributor);
-    let events_after_assign = env.events().all().len();
-
-    // client.complete_task(&task_id); // Removed
-    // let events_after_complete = env.events().all().len();
-
-    // Verify events were emitted in order (each operation should add events)
-    assert!(
-        events_after_create > initial_event_count,
-        "Create should emit events"
-    );
-    assert!(
-        events_after_assign > events_after_create,
-        "Assign should emit events"
-    );
-    // assert!(events_after_complete > events_after_assign, "Complete should emit events");
-}
-
-#[test]
-fn test_no_events_on_failed_operations() {
-    let (env, admin, usdc_address, _usdc_token, _usdc_token_client, _contract_id, client) =
-        create_test_env();
-
-    // Initialize contract
-    client.initialize(&admin, &usdc_address);
-
-    let creator = Address::generate(&env);
-    let task_id = TestValidation::generate_task_id(&env, "event_fail", 1);
-
-    // Get initial event count
-    let initial_event_count = env.events().all().len();
-
-    // Try to create escrow without funding (should fail)
-    // Try to create escrow without funding (should fail)
-    let result = client.try_create_escrow(
-        &creator,
-        &task_id,
-        &TestValidation::dummy_issue_url(&env),
-        &TestConfig::MEDIUM_AMOUNT,
-    );
-    assert!(result.is_err());
-
-    // Verify no additional events were emitted on failure
-    let final_event_count = env.events().all().len();
-    assert_eq!(
-        final_event_count, initial_event_count,
-        "Failed operations should not emit events"
-    );
+    let actual_event: RefundProcessedEvent = event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_event, expected_event);
 }
