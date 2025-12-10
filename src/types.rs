@@ -119,3 +119,23 @@ pub struct RefundProcessedEvent {
     pub amount: i128,
     pub timestamp: u64,
 }
+
+/// Event emitted when bounty amount is increased
+#[contractevent]
+pub struct BountyIncreasedEvent {
+    pub task_id: String,
+    pub creator: Address,
+    pub added_amount: i128,
+    pub new_total_amount: i128,
+    pub timestamp: u64,
+}
+
+/// Event emitted when bounty amount is decreased
+#[contractevent]
+pub struct BountyDecreasedEvent {
+    pub task_id: String,
+    pub creator: Address,
+    pub subtracted_amount: i128,
+    pub new_total_amount: i128,
+    pub timestamp: u64,
+}

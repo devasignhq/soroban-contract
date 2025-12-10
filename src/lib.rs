@@ -103,7 +103,7 @@ impl TaskEscrowContract {
         Ok(())
     }
 
-    /// Helper function to check if contract is initialized
+    /// Check if the contract is initialized
     fn is_initialized(env: &Env) -> bool {
         env.storage().instance().has(&DataKey::Admin)
             && env.storage().instance().has(&DataKey::UsdcToken)
@@ -271,6 +271,107 @@ impl TaskEscrowContract {
         Ok(())
     }
 
+    /// Increase the bounty amount for an existing task
+    pub fn increase_bounty(
+        env: Env,
+        creator: Address,
+        task_id: String,
+        amount: i128,
+    ) -> Result<(), Error> {
+        // Authenticate creator
+        creator.require_auth();
+
+        // Validate input
+        if amount <= 0 {
+            return Err(Error::InvalidAmount);
+        }
+
+        // Get escrow data
+        let mut escrow = Self::get_escrow(env.clone(), task_id.clone())?;
+
+        // Verify creator is the owner of the task
+        if escrow.creator != creator {
+            return Err(Error::NotTaskCreator);
+        }
+
+        // Validate task status
+        // Allow increasing bounty for Open and InProgress tasks
+        // Disputed, Completed, or Cancelled tasks cannot be modified
+        match escrow.status {
+            TaskStatus::Open | TaskStatus::InProgress => {}
+            _ => return Err(Error::InvalidTaskStatus),
+        }
+
+        // Transfer additional USDC from creator to contract
+        Self::transfer_usdc_to_contract(&env, &creator, amount)?;
+
+        // Update bounty amount
+        escrow.bounty_amount += amount;
+
+        // Save updated escrow
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+
+        // Emit event
+        crate::events::emit_bounty_increased(&env, task_id, creator, amount, escrow.bounty_amount);
+
+        Ok(())
+    }
+
+    /// Decrease the bounty amount for an existing task
+    pub fn decrease_bounty(
+        env: Env,
+        creator: Address,
+        task_id: String,
+        amount: i128,
+    ) -> Result<(), Error> {
+        // Authenticate creator
+        creator.require_auth();
+
+        // Validate input
+        if amount <= 0 {
+            return Err(Error::InvalidAmount);
+        }
+
+        // Get escrow data
+        let mut escrow = Self::get_escrow(env.clone(), task_id.clone())?;
+
+        // Verify creator is the owner of the task
+        if escrow.creator != creator {
+            return Err(Error::NotTaskCreator);
+        }
+
+        // Validate task status
+        // Only allow decreasing bounty for Open tasks (before contributor is assigned)
+        match escrow.status {
+            TaskStatus::Open => {}
+            _ => return Err(Error::InvalidTaskStatus),
+        }
+
+        // Verify sufficient bounty amount
+        if escrow.bounty_amount <= amount {
+            // Cannot decrease to 0 or less (use cancel/refund for that)
+            return Err(Error::InvalidAmount);
+        }
+
+        // Transfer USDC from contract back to creator
+        Self::transfer_usdc_from_contract(&env, &creator, amount)?;
+
+        // Update bounty amount
+        escrow.bounty_amount -= amount;
+
+        // Save updated escrow
+        env.storage()
+            .persistent()
+            .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
+
+        // Emit event
+        crate::events::emit_bounty_decreased(&env, task_id, creator, amount, escrow.bounty_amount);
+
+        Ok(())
+    }
+
     /// Assign a contributor to a task
     /// Can only be called by the task creator when task is in Open status
     pub fn assign_contributor(
@@ -400,7 +501,7 @@ impl TaskEscrowContract {
             return Err(Error::NoContributorAssigned);
         }
 
-        // Validate task is InProgress. 
+        // Validate task is InProgress.
         // If it is already Completed (paid), Disputed, or Cancelled, we can't dispute
         if escrow.status != TaskStatus::InProgress {
             return Err(Error::InvalidTaskStatus);

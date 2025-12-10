@@ -85,3 +85,39 @@ pub fn emit_refund_processed(env: &Env, task_id: String, creator: Address, amoun
     }
     .publish(env);
 }
+
+/// Emit a BountyIncreased event
+pub fn emit_bounty_increased(
+    env: &Env,
+    task_id: String,
+    creator: Address,
+    added_amount: i128,
+    new_total_amount: i128,
+) {
+    BountyIncreasedEvent {
+        task_id,
+        creator,
+        added_amount,
+        new_total_amount,
+        timestamp: env.ledger().timestamp(),
+    }
+    .publish(env);
+}
+
+/// Emit a BountyDecreased event
+pub fn emit_bounty_decreased(
+    env: &Env,
+    task_id: String,
+    creator: Address,
+    subtracted_amount: i128,
+    new_total_amount: i128,
+) {
+    BountyDecreasedEvent {
+        task_id,
+        creator,
+        subtracted_amount,
+        new_total_amount,
+        timestamp: env.ledger().timestamp(),
+    }
+    .publish(env);
+}
