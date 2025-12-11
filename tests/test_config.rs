@@ -3,6 +3,7 @@ use soroban_sdk::{Env, String};
 /// Test configuration constants and utilities for consistent testing
 pub struct TestConfig;
 
+#[allow(dead_code)]
 impl TestConfig {
     /// Standard USDC amounts for testing (in stroops - 7 decimal places)
     pub const SMALL_AMOUNT: i128 = 100_0000000; // 100 USDC
@@ -74,6 +75,7 @@ impl TestScenarios {
     }
 
     /// Standard dispute resolution scenarios
+    #[allow(dead_code)]
     pub fn dispute_resolutions() -> Vec<(&'static str, devasign_task_escrow::DisputeResolution)> {
         vec![
             (
@@ -97,10 +99,12 @@ impl TestScenarios {
 }
 
 /// Test assertion helpers for common validation patterns
+#[allow(dead_code)]
 pub struct TestAssertions;
 
 impl TestAssertions {
     /// Assert that a value is within expected range
+    #[allow(dead_code)]
     pub fn assert_within_range<T: PartialOrd + std::fmt::Debug>(
         value: T,
         min: T,
@@ -118,6 +122,7 @@ impl TestAssertions {
     }
 
     /// Assert that gas usage is reasonable
+    #[allow(dead_code)]
     pub fn assert_reasonable_gas_usage(gas_used: u64, max_expected: u64) {
         assert!(gas_used > 0, "Gas usage should be greater than 0");
         assert!(
@@ -129,6 +134,7 @@ impl TestAssertions {
     }
 
     /// Assert that performance is consistent (coefficient of variation < threshold)
+    #[allow(dead_code)]
     pub fn assert_performance_consistency(measurements: &[u64], max_cv_percent: f64) {
         if measurements.len() < 2 {
             return; // Can't calculate variance with less than 2 measurements
@@ -207,6 +213,7 @@ impl TestValidation {
     }
 
     /// Generate valid issue URL for testing
+    #[allow(dead_code)]
     pub fn dummy_issue_url(env: &Env) -> String {
         String::from_str(env, "https://github.com/owner/repo/issues/1")
     }
@@ -279,22 +286,34 @@ mod tests {
         assert!(!TestValidation::is_valid_dispute_reason("")); // Empty
     }
 
-    // #[test]
-    // fn test_task_id_generation() {
-    //     let task_id = TestValidation::generate_task_id("test", 123);
-    //     assert!(TestValidation::is_valid_task_id(&task_id));
-    //     assert!(task_id.starts_with("test-"));
-    //     assert!(task_id.contains("000123"));
-    // }
+    #[test]
+    fn test_task_id_generation() {
+        let env = Env::default();
+        let task_id = TestValidation::generate_task_id(&env, "test", 123);
 
-    // #[test]
-    // fn test_dispute_reason_generation() {
-    //     let reason = TestValidation::generate_dispute_reason("quality");
-    //     assert!(TestValidation::is_valid_dispute_reason(&reason));
-    //     assert_eq!(reason, TestConfig::QUALITY_DISPUTE);
+        // Convert to Rust String for validation
+        let task_id_str = task_id.to_string();
 
-    //     let custom_reason = TestValidation::generate_dispute_reason("custom");
-    //     assert!(TestValidation::is_valid_dispute_reason(&custom_reason));
-    //     assert!(custom_reason.contains("custom"));
-    // }
+        assert!(TestValidation::is_valid_task_id(&task_id_str));
+        assert!(task_id_str.starts_with("test-"));
+        assert!(task_id_str.contains("000123"));
+    }
+
+    #[test]
+    fn test_dispute_reason_generation() {
+        let env = Env::default();
+        let reason = TestValidation::generate_dispute_reason(&env, "quality");
+
+        // Convert to Rust String for validation
+        let reason_str = reason.to_string();
+
+        assert!(TestValidation::is_valid_dispute_reason(&reason_str));
+        assert_eq!(reason_str, TestConfig::QUALITY_DISPUTE);
+
+        let custom_reason = TestValidation::generate_dispute_reason(&env, "custom");
+        let custom_reason_str = custom_reason.to_string();
+
+        assert!(TestValidation::is_valid_dispute_reason(&custom_reason_str));
+        assert!(custom_reason_str.contains("custom"));
+    }
 }
