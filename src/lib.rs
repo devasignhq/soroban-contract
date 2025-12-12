@@ -294,12 +294,9 @@ impl TaskEscrowContract {
             return Err(Error::NotTaskCreator);
         }
 
-        // Validate task status
-        // Allow increasing bounty for Open and InProgress tasks
-        // Disputed, Completed, or Cancelled tasks cannot be modified
-        match escrow.status {
-            TaskStatus::Open | TaskStatus::InProgress => {}
-            _ => return Err(Error::InvalidTaskStatus),
+        // Allow increasing bounty for only Open tasks
+        if escrow.status != TaskStatus::Open {
+            return Err(Error::InvalidTaskStatus);
         }
 
         // Transfer additional USDC from creator to contract
@@ -342,11 +339,9 @@ impl TaskEscrowContract {
             return Err(Error::NotTaskCreator);
         }
 
-        // Validate task status
-        // Only allow decreasing bounty for Open tasks (before contributor is assigned)
-        match escrow.status {
-            TaskStatus::Open => {}
-            _ => return Err(Error::InvalidTaskStatus),
+        // Allow decreasing bounty for only Open tasks
+        if escrow.status != TaskStatus::Open {
+            return Err(Error::InvalidTaskStatus);
         }
 
         // Verify sufficient bounty amount
@@ -401,6 +396,11 @@ impl TaskEscrowContract {
         // Validate no contributor is already assigned
         if escrow.has_contributor {
             return Err(Error::ContributorAlreadyAssigned);
+        }
+
+        // Validate task status (must be Open)
+        if escrow.status != TaskStatus::Open {
+            return Err(Error::InvalidTaskStatus);
         }
 
         // Update escrow with contributor information
@@ -565,9 +565,7 @@ impl TaskEscrowContract {
 
     /// Helper function to validate addresses and prevent null/invalid addresses
     fn validate_address(_address: &Address) -> Result<(), Error> {
-        // For Soroban SDK, we rely on the SDK's built-in address validation
-        // The SDK ensures addresses are properly formatted when created
-        // Basic validation is sufficient for our use case
+        // To be implemented
         Ok(())
     }
 
