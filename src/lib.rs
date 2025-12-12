@@ -927,6 +927,6 @@ impl TaskEscrowContract {
 
     /// Get contract version
     pub fn version() -> u64 {
-        3
+        4
     }
 }

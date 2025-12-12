@@ -294,3 +294,35 @@ fn test_decrease_bounty_invalid_status() {
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().unwrap(), Error::InvalidTaskStatus);
 }
+
+
+#[test]
+fn test_increase_bounty_invalid_status() {
+    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
+        create_test_env();
+
+    client.initialize(&admin, &usdc_address);
+
+    let creator = Address::generate(&env);
+    let contributor = Address::generate(&env);
+    let task_id = TestValidation::generate_task_id(&env, "test", 1);
+    let initial_bounty = TestConfig::MEDIUM_AMOUNT;
+    let increase_amount = 1_000_000; // 0.1 USDC
+
+    // Fund creator with enough for initial + potential increase
+    usdc_token.mint(&creator, &(initial_bounty + increase_amount));
+    client.create_escrow(
+        &creator,
+        &task_id,
+        &TestValidation::dummy_issue_url(&env),
+        &initial_bounty,
+    );
+
+    // Assign contributor -> Status becomes InProgress
+    client.assign_contributor(&task_id, &contributor);
+
+    // Attempt to increase bounty - should fail for InProgress
+    let result = client.try_increase_bounty(&creator, &task_id, &increase_amount);
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err().unwrap(), Error::InvalidTaskStatus);
+}

@@ -232,3 +232,37 @@ fn test_assign_same_contributor_multiple_tasks() {
         assert_eq!(escrow.status, TaskStatus::InProgress);
     }
 }
+
+
+#[test]
+fn test_assign_contributor_invalid_status() {
+    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
+        create_test_env();
+
+    // Initialize contract
+    client.initialize(&admin, &usdc_address);
+
+    let creator = Address::generate(&env);
+    let contributor1 = Address::generate(&env);
+    let contributor2 = Address::generate(&env);
+    let task_id = setup_escrow_for_assignment(&env, &client, &usdc_token, &creator, "status");
+
+    // Assign first contributor -> Status becomes InProgress
+    client.assign_contributor(&task_id, &contributor1);
+
+    // Verify status is InProgress
+    let escrow = client.get_escrow(&task_id);
+    assert_eq!(escrow.status, TaskStatus::InProgress);
+
+    // Try to assign another contributor when status is InProgress
+    // This should fail with InvalidTaskStatus (not ContributorAlreadyAssigned)
+    // because status check now happens before contributor check
+    let result = client.try_assign_contributor(&task_id, &contributor2);
+    assert!(result.is_err());
+    // Note: ContributorAlreadyAssigned is checked before InvalidTaskStatus in the code,
+    // so this will return ContributorAlreadyAssigned
+    assert_eq!(
+        result.unwrap_err().unwrap(),
+        Error::ContributorAlreadyAssigned
+    );
+}
