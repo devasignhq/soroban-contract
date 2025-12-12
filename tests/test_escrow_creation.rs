@@ -302,3 +302,38 @@ fn test_get_escrow_invalid_task_id() {
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().unwrap(), Error::InvalidTaskId);
 }
+
+#[test]
+fn test_create_escrow_invalid_url() {
+    let (env, admin, usdc_address, usdc_token, _usdc_token_client, _contract_id, client) =
+        create_test_env();
+
+    // Initialize contract
+    client.initialize(&admin, &usdc_address);
+
+    let creator = Address::generate(&env);
+    let task_id = TestValidation::generate_task_id(&env, "bad_url", 1);
+    let bounty_amount = TestConfig::MEDIUM_AMOUNT;
+    usdc_token.mint(&creator, &bounty_amount);
+
+    // Test empty URL
+    let result = client.try_create_escrow(
+        &creator,
+        &task_id,
+        &String::from_str(&env, &"".to_string()),
+        &bounty_amount,
+    );
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err().unwrap(), Error::InvalidIssueUrl);
+
+    // Test too long URL
+    let long_url = "a".repeat(501);
+    let result = client.try_create_escrow(
+        &creator,
+        &task_id,
+        &String::from_str(&env, &long_url),
+        &bounty_amount,
+    );
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err().unwrap(), Error::InvalidIssueUrl);
+}

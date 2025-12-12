@@ -125,3 +125,38 @@ fn test_get_usdc_token_info() {
     assert_eq!(token_address, usdc_address);
     assert_eq!(is_valid, true);
 }
+
+#[test]
+fn test_update_usdc_token_success() {
+    let (env, admin, usdc_address, _usdc_token, _usdc_token_client, _contract_id, client) =
+        create_test_env();
+
+    // Initialize contract
+    client.initialize(&admin, &usdc_address);
+
+    // Update USDC token
+    let new_token = Address::generate(&env);
+    let result = client.update_usdc_token(&new_token);
+    assert!(result == ());
+
+    // Verify new token is set
+    let stored_token = client.get_usdc_token();
+    assert!(stored_token == new_token);
+}
+
+#[test]
+fn test_update_usdc_token_unauthorized() {
+    let (env, admin, usdc_address, _usdc_token, _usdc_token_client, _contract_id, client) =
+        create_test_env();
+
+    // Initialize contract
+    client.initialize(&admin, &usdc_address);
+
+    // Try to update token from unauthorized address
+    let new_token = Address::generate(&env);
+
+    env.mock_all_auths_allowing_non_root_auth();
+
+    let result = client.mock_auths(&[]).try_update_usdc_token(&new_token);
+    assert!(result.is_err());
+}
