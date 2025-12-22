@@ -1,4 +1,4 @@
-use soroban_sdk::{BytesN};
+use soroban_sdk::{testutils::Events, BytesN, Symbol, TryIntoVal, Val};
 
 mod test_config;
 mod test_setup;
@@ -23,6 +23,19 @@ fn test_upgrade_success() {
 
         // Call upgrade as admin
         client.upgrade(&wasm_hash);
+
+        // Verify event
+        let events = env.events().all();
+        let upgrade_events: std::vec::Vec<_> = events
+            .iter()
+            .filter(|e| {
+                let topic_val: Val = e.1.iter().next().unwrap();
+                let topic_sym: Symbol = topic_val.try_into_val(&env).unwrap();
+                topic_sym == Symbol::new(&env, "contract_upgraded_event")
+            })
+            .collect();
+
+        assert!(!upgrade_events.is_empty());
     } else {
         std::println!(
             "Skipping test_upgrade_success: WASM file not found at {}",

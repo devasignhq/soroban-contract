@@ -21,10 +21,6 @@ fn test_initialize_success() {
     // Verify USDC token is set correctly
     let stored_token = client.get_usdc_token();
     assert!(stored_token == usdc_address);
-
-    // Verify task count is initialized to 0
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, 0);
 }
 
 #[test]

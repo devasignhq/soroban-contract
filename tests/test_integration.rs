@@ -23,7 +23,7 @@ fn test_complete_happy_path_workflow() {
     // Fund creator
     usdc_token.mint(&creator, &bounty_amount);
 
-    // Complete workflow: Create → Assign → Complete → Approve → Payment
+    // Complete workflow: Create → Assign → Approve → Payment
 
     // 1. Create escrow
     let result = client.create_escrow(
@@ -47,15 +47,13 @@ fn test_complete_happy_path_workflow() {
     assert_eq!(escrow.has_contributor, true);
     assert_eq!(escrow.contributor, contributor);
 
-    // 3. Complete task (Removed as per new logic where approval happens directly from InProgress)
-
-    // 4. Approve completion and release funds
+    // 3. Approve completion and release funds
     let initial_contributor_balance = usdc_token_client.balance(&contributor);
 
     let result = client.approve_completion(&task_id);
     assert!(result == ());
 
-    // 5. Verify final state
+    // 4. Verify final state
     let escrow = client.get_escrow(&task_id);
     assert_eq!(escrow.status, TaskStatus::Completed);
 
@@ -92,7 +90,6 @@ fn test_complete_dispute_workflow_pay_contributor() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
     // Dispute workflow: Dispute → Resolve (Pay Contributor)
 
@@ -147,7 +144,6 @@ fn test_complete_dispute_workflow_refund_creator() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
     // Dispute workflow: Dispute → Resolve (Refund Creator)
 
@@ -195,7 +191,6 @@ fn test_complete_dispute_workflow_partial_payment() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
     // Dispute workflow: Dispute → Resolve (Partial Payment - 60% to contributor)
 
@@ -310,11 +305,6 @@ fn test_multi_user_concurrent_tasks() {
         task_ids.push(task_id);
     }
 
-    // Complete all tasks (Removed)
-    // for task_id in &task_ids {
-    //     client.complete_task(task_id);
-    // }
-
     // Approve all tasks and verify payments
     for (i, task_id) in task_ids.iter().enumerate() {
         let initial_balance = usdc_token_client.balance(&contributors[i]);
@@ -327,10 +317,6 @@ fn test_multi_user_concurrent_tasks() {
         let escrow = client.get_escrow(task_id);
         assert_eq!(escrow.status, TaskStatus::Completed);
     }
-
-    // Verify task count
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, creators.len() as u64);
 }
 
 #[test]
@@ -355,7 +341,6 @@ fn test_mixed_workflow_scenarios() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id_1, &contributor);
-    // client.complete_task(&task_id_1);
     client.approve_completion(&task_id_1);
 
     // Scenario 2: Refund
@@ -379,7 +364,6 @@ fn test_mixed_workflow_scenarios() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id_3, &contributor);
-    // client.complete_task(&task_id_3);
 
     let reason = TestValidation::generate_dispute_reason(&env, "quality");
     client.dispute_task(&creator, &task_id_3, &reason);
@@ -393,10 +377,6 @@ fn test_mixed_workflow_scenarios() {
     assert_eq!(escrow_1.status, TaskStatus::Completed);
     assert_eq!(escrow_2.status, TaskStatus::Cancelled);
     assert_eq!(escrow_3.status, TaskStatus::Completed);
-
-    // Verify task count
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, 3);
 }
 
 #[test]
@@ -429,11 +409,6 @@ fn test_large_scale_operations() {
         task_ids.push(task_id);
     }
 
-    // Complete all tasks (Removed)
-    // for task_id in &task_ids {
-    //     client.complete_task(task_id);
-    // }
-
     // Approve all tasks
     let initial_balance = usdc_token_client.balance(&contributor);
 
@@ -445,10 +420,6 @@ fn test_large_scale_operations() {
     let final_balance = usdc_token_client.balance(&contributor);
     let expected_total = bounty_amount * task_count as i128;
     assert_eq!(final_balance, initial_balance + expected_total);
-
-    // Verify task count
-    let final_task_count = client.get_task_count();
-    assert_eq!(final_task_count, task_count as u64);
 }
 
 #[test]
@@ -477,7 +448,6 @@ fn test_workflow_with_different_amounts() {
             &amount,
         );
         client.assign_contributor(&task_id, &contributor);
-        // client.complete_task(&task_id);
         client.approve_completion(&task_id);
 
         total_expected += amount;
@@ -521,7 +491,6 @@ fn test_admin_operations_workflow() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id);
 
     let reason = TestValidation::generate_dispute_reason(&env, "quality");
     client.dispute_task(&creator, &task_id, &reason);

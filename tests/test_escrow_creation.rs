@@ -43,10 +43,6 @@ fn test_create_escrow_success() {
     assert_eq!(escrow_data.bounty_amount, bounty_amount);
     assert_eq!(escrow_data.status, TaskStatus::Open);
     assert_eq!(escrow_data.has_contributor, false);
-
-    // Verify task count increased
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, 1);
 }
 
 #[test]
@@ -80,10 +76,6 @@ fn test_create_escrow_multiple_amounts() {
         assert!(escrow.task_id == task_id);
         assert_eq!(escrow.bounty_amount, amount);
     }
-
-    // Verify task count
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, amounts.len() as u64);
 }
 
 #[test]

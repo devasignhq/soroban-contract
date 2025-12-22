@@ -31,8 +31,6 @@ fn setup_task_for_dispute(
     // Assign contributor
     client.assign_contributor(&task_id, contributor);
 
-    // Note: complete_task logic removed as disputes now happen during InProgress
-
     (task_id, bounty_amount)
 }
 

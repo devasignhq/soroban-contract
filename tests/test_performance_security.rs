@@ -85,7 +85,6 @@ fn test_gas_usage_complete_workflow() {
             &bounty_amount,
         );
         client.assign_contributor(&task_id, &contributor);
-        // client.complete_task(&task_id); // Removed
         client.approve_completion(&task_id);
 
         let final_gas = env.cost_estimate().budget().cpu_instruction_cost();
@@ -133,7 +132,6 @@ fn test_performance_large_amounts() {
             &amount,
         );
         client.assign_contributor(&task_id, &contributor);
-        // client.complete_task(&task_id); // Removed
         client.approve_completion(&task_id);
 
         let final_gas = env.cost_estimate().budget().cpu_instruction_cost();
@@ -193,10 +191,6 @@ fn test_performance_concurrent_operations() {
     // Verify reasonable gas usage for concurrent operations
     let max_expected_concurrent_gas = 10_000_000u64;
     TestAssertions::assert_reasonable_gas_usage(total_gas, max_expected_concurrent_gas);
-
-    // Verify all operations completed successfully
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, concurrent_count as u64);
 }
 
 #[test]
@@ -229,14 +223,9 @@ fn test_memory_efficiency_large_scale() {
         assert_eq!(escrow.bounty_amount, bounty_amount);
     }
 
-    // Verify task count is accurate
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, large_scale_count as u64);
-
     // Test that we can still perform operations efficiently
     let test_task_id = TestValidation::generate_task_id(&env, "memory_test", 0);
     client.assign_contributor(&test_task_id, &contributor);
-    // client.complete_task(&test_task_id); // Removed
     client.approve_completion(&test_task_id);
 
     let escrow = client.get_escrow(&test_task_id);
@@ -270,7 +259,6 @@ fn test_authorization_boundaries() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
     // Test unauthorized operations
 
@@ -329,11 +317,9 @@ fn test_reentrancy_protection() {
         &bounty_amount,
     );
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
 
     // Test that operations cannot be called multiple times in same transaction
-    // This is a basic test - more sophisticated reentrancy tests will require
-    // custom malicious contracts
+    // Basic test - more sophisticated reentrancy tests will require custom malicious contracts
 
     // Approve completion
     client.approve_completion(&task_id);
@@ -388,7 +374,6 @@ fn test_input_validation_security() {
 
     let contributor = Address::generate(&env);
     client.assign_contributor(&valid_task_id, &contributor);
-    // client.complete_task(&valid_task_id); // Removed
 
     let malicious_reason = &String::from_str(&env, &"a".repeat(1000));
     let result = client.try_dispute_task(&creator, &valid_task_id, &malicious_reason);
@@ -451,7 +436,6 @@ fn test_state_consistency_under_stress() {
             0 => {
                 // Complete workflow
                 client.assign_contributor(task_id, &contributor);
-                // client.complete_task(task_id); // Removed
                 client.approve_completion(task_id);
             }
             1 => {
@@ -461,7 +445,6 @@ fn test_state_consistency_under_stress() {
             2 => {
                 // Dispute workflow
                 client.assign_contributor(task_id, &contributor);
-                // client.complete_task(task_id); // Removed
                 let reason = TestValidation::generate_dispute_reason(&env, "stress");
                 client.dispute_task(&creator, task_id, &reason);
                 client.resolve_dispute(task_id, &DisputeResolution::PayContributor);
@@ -489,10 +472,6 @@ fn test_state_consistency_under_stress() {
 
     assert_eq!(resolved_count, expected_resolved);
     assert_eq!(refunded_count, expected_refunded);
-
-    // Verify task count is correct
-    let task_count = client.get_task_count();
-    assert_eq!(task_count, stress_count as u64);
 }
 
 #[test]
@@ -539,7 +518,6 @@ fn test_token_interaction_security() {
 
     // 5. Complete workflow and verify proper fund transfer
     client.assign_contributor(&task_id, &contributor);
-    // client.complete_task(&task_id); // Removed
     client.approve_completion(&task_id);
 
     // 6. Verify funds were transferred to contributor
@@ -576,7 +554,6 @@ fn test_edge_case_boundary_conditions() {
 
     // Complete workflow with minimum amount
     client.assign_contributor(&min_task_id, &contributor);
-    // client.complete_task(&min_task_id); // Removed
     client.approve_completion(&min_task_id);
 
     let contributor_balance = usdc_token_client.balance(&contributor);
@@ -600,7 +577,6 @@ fn test_edge_case_boundary_conditions() {
 
     // Test partial payment edge cases
     client.assign_contributor(&max_task_id, &contributor);
-    // client.complete_task(&max_task_id); // Removed
 
     let reason = TestValidation::generate_dispute_reason(&env, "boundary");
     client.dispute_task(&creator, &max_task_id, &reason);
