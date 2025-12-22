@@ -44,7 +44,7 @@ pub enum DataKey {
     TaskEscrow(String), // task_id -> TaskEscrow
     Admin,              // Admin address
     UsdcToken,          // USDC token contract address
-    TaskCount,          // Total number of tasks
+    Paused,             // Boolean flag for emergency pause
     Dispute(String),    // task_id -> DisputeInfo
 }
 
@@ -137,5 +137,13 @@ pub struct BountyDecreasedEvent {
     pub creator: Address,
     pub subtracted_amount: i128,
     pub new_total_amount: i128,
+    pub timestamp: u64,
+}
+
+/// Event emitted when the contract is upgraded
+#[contractevent]
+pub struct ContractUpgradedEvent {
+    pub new_wasm_hash: soroban_sdk::BytesN<32>,
+    pub admin: Address,
     pub timestamp: u64,
 }

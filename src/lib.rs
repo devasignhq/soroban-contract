@@ -35,8 +35,8 @@ impl TaskEscrowContract {
             .instance()
             .set(&DataKey::UsdcToken, &usdc_token);
 
-        // Initialize task count to 0
-        env.storage().instance().set(&DataKey::TaskCount, &0u64);
+        // Initialize paused state to false
+        env.storage().instance().set(&DataKey::Paused, &false);
 
         Ok(())
     }
@@ -52,6 +52,18 @@ impl TaskEscrowContract {
 
         // Update admin address
         env.storage().instance().set(&DataKey::Admin, &new_admin);
+
+        Ok(())
+    }
+
+    /// Set the emergency pause state
+    /// Can only be called by admin
+    pub fn set_paused(env: Env, paused: bool) -> Result<(), Error> {
+        // Validate caller is current admin
+        Self::require_admin(&env)?;
+
+        // Update paused state
+        env.storage().instance().set(&DataKey::Paused, &paused);
 
         Ok(())
     }
@@ -120,6 +132,7 @@ impl TaskEscrowContract {
     ) -> Result<(), Error> {
         // Validate contract state and initialization
         Self::validate_contract_state(&env)?;
+        Self::check_not_paused(&env)?;
 
         // Validate creator address
         Self::validate_address(&creator)?;
@@ -172,16 +185,6 @@ impl TaskEscrowContract {
             .persistent()
             .set(&DataKey::TaskEscrow(task_id.clone()), &escrow);
 
-        // Increment task count
-        let current_count: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::TaskCount)
-            .unwrap_or(0);
-        env.storage()
-            .instance()
-            .set(&DataKey::TaskCount, &(current_count + 1));
-
         // Emit escrow created event
         crate::events::emit_escrow_created(&env, task_id, creator, bounty_amount);
 
@@ -198,14 +201,6 @@ impl TaskEscrowContract {
             .persistent()
             .get(&DataKey::TaskEscrow(task_id))
             .ok_or(Error::TaskNotFound)
-    }
-
-    /// Get the total number of tasks created
-    pub fn get_task_count(env: Env) -> u64 {
-        env.storage()
-            .instance()
-            .get(&DataKey::TaskCount)
-            .unwrap_or(0)
     }
 
     /// Helper function to check if a task exists
@@ -278,6 +273,9 @@ impl TaskEscrowContract {
         task_id: String,
         amount: i128,
     ) -> Result<(), Error> {
+        // Check paused state
+        Self::check_not_paused(&env)?;
+
         // Authenticate creator
         creator.require_auth();
 
@@ -323,6 +321,9 @@ impl TaskEscrowContract {
         task_id: String,
         amount: i128,
     ) -> Result<(), Error> {
+        // Check paused state
+        Self::check_not_paused(&env)?;
+
         // Authenticate creator
         creator.require_auth();
 
@@ -376,6 +377,7 @@ impl TaskEscrowContract {
     ) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
+        Self::check_not_paused(&env)?;
 
         // Validate task_id format with enhanced checks
         Self::validate_task_id(&task_id)?;
@@ -424,6 +426,7 @@ impl TaskEscrowContract {
     pub fn approve_completion(env: Env, task_id: String) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
+        Self::check_not_paused(&env)?;
 
         // Validate task_id format with enhanced checks
         Self::validate_task_id(&task_id)?;
@@ -476,6 +479,7 @@ impl TaskEscrowContract {
     ) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
+        Self::check_not_paused(&env)?;
 
         // Validate task_id format with enhanced checks
         Self::validate_task_id(&task_id)?;
@@ -620,6 +624,22 @@ impl TaskEscrowContract {
         Ok(())
     }
 
+    /// Helper function to check if contract is paused
+    fn is_paused(env: &Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
+
+    /// Helper function to enforce pause check
+    fn check_not_paused(env: &Env) -> Result<(), Error> {
+        if Self::is_paused(env) {
+            return Err(Error::ContractPaused);
+        }
+        Ok(())
+    }
+
     /// Resolve a dispute with admin authority
     /// Can only be called by admin when task is in Disputed status
     pub fn resolve_dispute(
@@ -703,6 +723,7 @@ impl TaskEscrowContract {
     pub fn refund(env: Env, task_id: String) -> Result<(), Error> {
         // Validate contract state
         Self::validate_contract_state(&env)?;
+        Self::check_not_paused(&env)?;
 
         // Validate task_id format with enhanced checks
         Self::validate_task_id(&task_id)?;
@@ -920,7 +941,12 @@ impl TaskEscrowContract {
         Self::require_admin(&env)?;
 
         // Update the contract's WASM code
-        env.deployer().update_current_contract_wasm(new_wasm_hash);
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+
+        // Emit upgrade event
+        let admin = Self::get_admin(env.clone())?;
+        crate::events::emit_contract_upgraded(&env, new_wasm_hash, admin);
 
         Ok(())
     }

@@ -44,4 +44,5 @@ pub enum Error {
     AmountTooSmall = 48,
     DisputeReasonTooShort = 49,
     InvalidIssueUrl = 50,
+    ContractPaused = 51,
 }

@@ -121,3 +121,13 @@ pub fn emit_bounty_decreased(
     }
     .publish(env);
 }
+
+/// Emit a ContractUpgraded event
+pub fn emit_contract_upgraded(env: &Env, new_wasm_hash: soroban_sdk::BytesN<32>, admin: Address) {
+    ContractUpgradedEvent {
+        new_wasm_hash,
+        admin,
+        timestamp: env.ledger().timestamp(),
+    }
+    .publish(env);
+}
